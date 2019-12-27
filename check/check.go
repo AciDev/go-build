@@ -2,6 +2,8 @@ package check
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"time"
@@ -10,6 +12,7 @@ import (
 // Check for checking changes
 func Check() {
 	res, status := argCheck(systemArgs())
+	compile(res)
 	if status == true {
 		validate(res)
 		modified := time.Now().Unix()
@@ -18,7 +21,7 @@ func Check() {
 			mod := lastModified(res)
 			if modified < mod {
 				fmt.Println("File has changed")
-				compile()
+				compile(res)
 				modified = mod
 			}
 		}
@@ -101,6 +104,22 @@ func lastModified(file string) int64 {
 	return info.ModTime().Unix()
 }
 
-func compile() {
+func compile(file string) {
+	cmd := exec.Command("cat")
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	go func() {
+		defer stdin.Close()
+		io.WriteString(stdin, "values written to stdin are passed to cmd's standard input")
+	}()
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%s\n", out)
 }
